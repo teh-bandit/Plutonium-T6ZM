@@ -133,6 +133,7 @@ onPlayerSpawned()
 		{
 			self.director_spawn = 0;
 			self thread upgrade_box();
+			self thread end_solo_game();
 		}
 	}
 }
@@ -167,4 +168,17 @@ get_upgrade(weaponname)
 	{
 		return maps/mp/zombies/_zm_weapons::get_upgrade_weapon(weaponname, 1);
 	}
+}
+
+end_solo_game()
+{
+	self endon("disconnect");
+    for(;;)
+    {
+        self waittill("player_downed");
+        if ( (getPlayers().size == 1) && (level.solo_lives_given > 3) )
+        {
+            level notify("end_game");
+        }
+    }
 }
