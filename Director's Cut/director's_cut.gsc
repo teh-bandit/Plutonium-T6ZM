@@ -49,13 +49,13 @@ init()
 	if ( is_classic() )
 	{
 		level.zombie_include_weapons[ "jetgun_zm" ] = 1;
+		level.zombie_weapons[ "jetgun_zm" ].is_in_box = 1;
 	}
 	level.zombie_include_weapons[ "slipgun_zm" ] = 1;
 	level.zombie_include_weapons[ "staff_air_zm" ] = 1;
 	level.zombie_include_weapons[ "staff_fire_zm" ] = 1;
 	level.zombie_include_weapons[ "staff_lightning_zm" ] = 1;
 	level.zombie_include_weapons[ "staff_water_zm" ] = 1;
-	level.zombie_weapons[ "jetgun_zm" ].is_in_box = 1;
 	level.zombie_weapons[ "slipgun_zm" ].is_in_box = 1;
 	level.zombie_weapons[ "staff_air_zm" ].is_in_box = 1;
 	level.zombie_weapons[ "staff_fire_zm" ].is_in_box = 1;
