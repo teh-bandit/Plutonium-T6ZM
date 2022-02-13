@@ -46,7 +46,10 @@ init()
 	add_zombie_weapon( "slipgun_zm", "slipgun_upgraded_zm", &"ZOMBIE_WEAPON_SLIPGUN", 10, "slip", "", undefined );
 	level.limited_weapons = [];
 	level._limited_equipment = [];
-	level.zombie_include_weapons[ "jetgun_zm" ] = 1;
+	if ( is_classic() )
+	{
+		level.zombie_include_weapons[ "jetgun_zm" ] = 1;
+	}
 	level.zombie_include_weapons[ "slipgun_zm" ] = 1;
 	level.zombie_include_weapons[ "staff_air_zm" ] = 1;
 	level.zombie_include_weapons[ "staff_fire_zm" ] = 1;
