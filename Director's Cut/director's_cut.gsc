@@ -43,6 +43,21 @@
 
 init()
 {
+	add_zombie_weapon( "slipgun_zm", "slipgun_upgraded_zm", &"ZOMBIE_WEAPON_SLIPGUN", 10, "slip", "", undefined );
+	level.limited_weapons = [];
+	level._limited_equipment = [];
+	level.zombie_include_weapons[ "jetgun_zm" ] = 1;
+	level.zombie_include_weapons[ "slipgun_zm" ] = 1;
+	level.zombie_include_weapons[ "staff_air_zm" ] = 1;
+	level.zombie_include_weapons[ "staff_fire_zm" ] = 1;
+	level.zombie_include_weapons[ "staff_lightning_zm" ] = 1;
+	level.zombie_include_weapons[ "staff_water_zm" ] = 1;
+	level.zombie_weapons[ "jetgun_zm" ].is_in_box = 1;
+	level.zombie_weapons[ "slipgun_zm" ].is_in_box = 1;
+	level.zombie_weapons[ "staff_air_zm" ].is_in_box = 1;
+	level.zombie_weapons[ "staff_fire_zm" ].is_in_box = 1;
+	level.zombie_weapons[ "staff_lightning_zm" ].is_in_box = 1;
+	level.zombie_weapons[ "staff_water_zm" ].is_in_box = 1;
 	level.player_starting_points = 25000;
 	level thread sq_give_player_rewards();
 	level thread onPlayerConnect();
@@ -173,12 +188,12 @@ get_upgrade(weaponname)
 end_solo_game()
 {
 	self endon("disconnect");
-    for(;;)
-    {
-        self waittill("player_downed");
-        if ( (getPlayers().size == 1) && (level.solo_lives_given > 3) )
-        {
-            level notify("end_game");
-        }
-    }
+	for(;;)
+	{
+		self waittill("player_downed");
+		if ( (getPlayers().size == 1) && (level.solo_lives_given > 6) )
+		{
+			level notify("end_game");
+		}
+	}
 }
