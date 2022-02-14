@@ -164,6 +164,7 @@ upgrade_box()
 		self waittill("user_grabbed_weapon");
 		wait 0.05;
 		self waittill ("weapon_change");
+		wait 0.05;
 		weap = maps/mp/zombies/_zm_weapons::get_base_name(self getcurrentweapon());
 		weapon = get_upgrade(weap);
 		if(isdefined(weapon))
