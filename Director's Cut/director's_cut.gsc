@@ -41,6 +41,120 @@
 #include maps/mp/zombies/_zm_weapons;
 #include maps/mp/zombies/_zm_zonemgr;
 
+main()
+{
+	replacefunc(maps/mp/zombies/_zm_perks::solo_revive_buy_trigger_move_trigger, ::solo_revive_buy_trigger_move_trigger);
+	replacefunc(maps/mp/zombies/_zm_perks::give_perk, ::give_perk);
+}
+
+solo_revive_buy_trigger_move_trigger( revive_perk_trigger )
+{
+	self endon( "death" );
+	revive_perk_trigger setinvisibletoplayer( self );
+	if ( level.solo_lives_given >= 6 )
+	{
+		revive_perk_trigger trigger_off();
+		if ( isDefined( level._solo_revive_machine_expire_func ) )
+		{
+			revive_perk_trigger [[ level._solo_revive_machine_expire_func ]]();
+		}
+		return;
+	}
+	while ( self.lives > 0 )
+	{
+		wait 0.1;
+	}
+	revive_perk_trigger setvisibletoplayer( self );
+}
+
+give_perk( perk, bought )
+{
+	self setperk( perk );
+	self.num_perks++;
+	if ( is_true( bought ) )
+	{
+		self maps/mp/zombies/_zm_audio::playerexert( "burp" );
+		if ( is_true( level.remove_perk_vo_delay ) )
+		{
+			self maps/mp/zombies/_zm_audio::perk_vox( perk );
+		}
+		else
+		{
+			self delay_thread( 1.5, ::perk_vox, perk );
+		}
+		self setblur( 4, 0.1 );
+		wait 0.1;
+		self setblur( 0, 0.1 );
+		self notify( "perk_bought", perk );
+	}
+	self perk_set_max_health_if_jugg( perk, 1, 0 );
+	if ( !is_true( level.disable_deadshot_clientfield ) )
+	{
+		if ( perk == "specialty_deadshot" )
+		{
+			self setclientfieldtoplayer( "deadshot_perk", 1 );
+		}
+		else if ( perk == "specialty_deadshot_upgrade" )
+		{
+			self setclientfieldtoplayer( "deadshot_perk", 1 );
+		}
+	}
+	if ( perk == "specialty_scavenger" )
+	{
+		self.hasperkspecialtytombstone = 1;
+	}
+	players = get_players();
+	if ( use_solo_revive() && perk == "specialty_quickrevive" )
+	{
+		self.lives = 1;
+		if ( !isDefined( level.solo_lives_given ) )
+		{
+			level.solo_lives_given = 0;
+		}
+		if ( isDefined( level.solo_game_free_player_quickrevive ) )
+		{
+			level.solo_game_free_player_quickrevive = undefined;
+		}
+		else
+		{
+			level.solo_lives_given++;
+		}
+		if ( level.solo_lives_given >= 6 )
+		{
+			flag_set( "solo_revive" );
+		}
+		self thread solo_revive_buy_trigger_move( perk );
+	}
+	if ( perk == "specialty_finalstand" )
+	{
+		self.lives = 1;
+		self.hasperkspecialtychugabud = 1;
+		self notify( "perk_chugabud_activated" );
+	}
+	if ( isDefined( level._custom_perks[ perk ] ) && isDefined( level._custom_perks[ perk ].player_thread_give ) )
+	{
+		self thread [[ level._custom_perks[ perk ].player_thread_give ]]();
+	}
+	self set_perk_clientfield( perk, 1 );
+	maps/mp/_demo::bookmark( "zm_player_perk", getTime(), self );
+	self maps/mp/zombies/_zm_stats::increment_client_stat( "perks_drank" );
+	self maps/mp/zombies/_zm_stats::increment_client_stat( perk + "_drank" );
+	self maps/mp/zombies/_zm_stats::increment_player_stat( perk + "_drank" );
+	self maps/mp/zombies/_zm_stats::increment_player_stat( "perks_drank" );
+	if ( !isDefined( self.perk_history ) )
+	{
+		self.perk_history = [];
+	}
+	self.perk_history = add_to_array( self.perk_history, perk, 0 );
+	if ( !isDefined( self.perks_active ) )
+	{
+		self.perks_active = [];
+	}
+	self.perks_active[ self.perks_active.size ] = perk;
+	self notify( "perk_acquired" );
+	self thread perk_think( perk );
+}
+
 init()
 {
 	add_zombie_weapon( "slipgun_zm", "slipgun_upgraded_zm", &"ZOMBIE_WEAPON_SLIPGUN", 10, "slip", "", undefined );
@@ -61,6 +175,7 @@ init()
 	level.zombie_weapons[ "staff_fire_zm" ].is_in_box = 1;
 	level.zombie_weapons[ "staff_lightning_zm" ].is_in_box = 1;
 	level.zombie_weapons[ "staff_water_zm" ].is_in_box = 1;
+	level.perk_purchase_limit = 9;
 	level.player_starting_points = 25000;
 	level thread sq_give_player_rewards();
 	level thread onPlayerConnect();
@@ -125,10 +240,12 @@ sq_give_player_all_perks()
 watch_for_respawn()
 {
 	self endon( "disconnect" );
-	self waittill_either( "spawned_player", "player_revived" );
-	wait_network_frame();
-	self sq_give_player_all_perks();
-	self setmaxhealth( level.zombie_vars[ "zombie_perk_juggernaut_health" ] );
+	for(;;)
+	{
+		self waittill_either( "spawned_player", "player_revived" );
+		wait_network_frame();
+		self setmaxhealth( level.zombie_vars[ "zombie_perk_juggernaut_health" ] );
+	}
 }
 
 onPlayerConnect()
@@ -151,7 +268,6 @@ onPlayerSpawned()
 		{
 			self.director_spawn = 0;
 			self thread upgrade_box();
-			self thread end_solo_game();
 		}
 	}
 }
@@ -186,18 +302,5 @@ get_upgrade(weaponname)
 	else
 	{
 		return maps/mp/zombies/_zm_weapons::get_upgrade_weapon(weaponname, 1);
-	}
-}
-
-end_solo_game()
-{
-	self endon("disconnect");
-	for(;;)
-	{
-		self waittill("player_downed");
-		if ( (getPlayers().size == 1) && (level.solo_lives_given > 6) )
-		{
-			level notify("end_game");
-		}
 	}
 }
