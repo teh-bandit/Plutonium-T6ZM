@@ -244,6 +244,10 @@ watch_for_respawn()
 	{
 		self waittill_either( "spawned_player", "player_revived" );
 		wait_network_frame();
+		if ( level.script == "zm_prison" )
+		{
+			self sq_give_player_all_perks();
+		}
 		self setmaxhealth( level.zombie_vars[ "zombie_perk_juggernaut_health" ] );
 	}
 }
