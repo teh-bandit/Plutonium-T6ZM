@@ -177,22 +177,40 @@ init()
 	level.zombie_weapons[ "staff_water_zm" ].is_in_box = 1;
 	level.perk_purchase_limit = 9;
 	level.player_starting_points = 25000;
-	level thread sq_give_player_rewards();
 	level thread onPlayerConnect();
 }
 
-sq_give_player_rewards()
+onPlayerConnect()
 {
-	flag_wait("initial_blackscreen_passed");
-	players = get_players();
-	foreach ( player in players )
+	for(;;)
 	{
-		player thread sq_give_player_all_perks();
+		level waittill("connected", player);
+		player thread onPlayerSpawned();
 	}
 }
 
-sq_give_player_all_perks()
+onPlayerSpawned()
 {
+	self endon("disconnect");
+	self.director_spawn = 1;
+	for(;;)
+	{
+		self waittill("spawned_player");
+		wait_network_frame();
+		self dc_give_player_all_perks();
+		if (self.director_spawn == 1)
+		{
+			self.director_spawn = 0;
+			self thread watch_for_respawn();
+			self thread upgrade_box();
+		}
+	}
+}
+
+dc_give_player_all_perks()
+{
+	flag_wait( "initial_blackscreen_passed" );
+	wait_network_frame();
 	machines = getentarray( "zombie_vending", "targetname" );
 	perks = [];
 	i = 0;
@@ -234,7 +252,6 @@ sq_give_player_all_perks()
 		self maps/mp/zombies/_zm_perks::give_perk( "specialty_grenadepulldeath", 0 );
 	}
 	self._retain_perks = 1;
-	self thread watch_for_respawn();
 }
 
 watch_for_respawn()
@@ -246,33 +263,9 @@ watch_for_respawn()
 		wait_network_frame();
 		if ( level.script == "zm_prison" )
 		{
-			self sq_give_player_all_perks();
+			self dc_give_player_all_perks();
 		}
 		self setmaxhealth( level.zombie_vars[ "zombie_perk_juggernaut_health" ] );
-	}
-}
-
-onPlayerConnect()
-{
-	for(;;)
-	{
-		level waittill("connected", player);
-		player thread onPlayerSpawned();
-	}
-}
-
-onPlayerSpawned()
-{
-	self endon("disconnect");
-	self.director_spawn = 1;
-	for(;;)
-	{
-		self waittill("spawned_player");
-		if (self.director_spawn == 1)
-		{
-			self.director_spawn = 0;
-			self thread upgrade_box();
-		}
 	}
 }
 
