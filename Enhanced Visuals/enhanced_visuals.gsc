@@ -43,9 +43,42 @@
 
 init()
 {
-	level thread rotate_skydome();
-	level thread change_skydome();
 	level thread onPlayerConnect();
+}
+
+onPlayerConnect()
+{
+	for(;;)
+	{
+		level waittill("connected", player);
+		player thread onPlayerSpawned();
+	}
+}
+
+onPlayerSpawned()
+{
+	self endon("disconnect");
+	self.nice_graphics = 1;
+	for(;;)
+	{
+		self waittill("spawned_player");
+		if (self.nice_graphics == 1)
+		{
+			self.nice_graphics = 0;
+			self thread rotate_skydome();
+			self thread change_skydome();
+			self setclientdvar("r_fog", 0);
+			self setclientdvar("r_dof_enable", 0);
+			self setclientdvar("r_lodBiasRigid", -1000);
+			self setclientdvar("r_lodBiasSkinned", -1000);
+			self setClientDvar("r_lodScaleRigid", 1);
+			self setClientDvar("r_lodScaleSkinned", 1);
+			self setclientdvar("r_enablePlayerShadow", 1);
+			self setclientdvar("sm_sunquality", 2);
+			self useservervisionset(1);
+			self setvisionsetforplayer("", 0);
+		}
+	}
 }
 
 rotate_skydome()
@@ -54,48 +87,35 @@ rotate_skydome()
 	{
 		return;
 	}
-	level.sky_rotation = 360;
+	
+	x = 360;
+	
+	self endon("disconnect");
 	for(;;)
 	{
-		level.sky_rotation -= 0.025;
-		if ( level.sky_rotation < 0 )
+		x -= 0.025;
+		if ( x < 0 )
 		{
-			level.sky_rotation += 360;
+			x += 360;
 		}
-		setdvar( "r_skyRotation", level.sky_rotation );
+		self setclientdvar( "r_skyRotation", x );
 		wait 0.1;
 	}
 }
 
 change_skydome()
 {
-	level.sky_change = 6500;
+	x = 6500;
+	
+	self endon("disconnect");
 	for(;;)
 	{
-		level.sky_change += 1.626;
-		if ( level.sky_change > 25000 )
+		x += 1.626;
+		if ( x > 25000 )
 		{
-			level.sky_change -= 23350;
+			x -= 23350;
 		}
-		setdvar( "r_skyColorTemp", level.sky_change );
+		self setclientdvar( "r_skyColorTemp", x );
 		wait 0.1;
-	}
-}
-
-onPlayerConnect()
-{
-	for(;;)
-	{
-		level waittill("connected", player);
-		player setclientdvar("r_fog", 0);
-		player setclientdvar("r_dof_enable", 0);
-		player setclientdvar("r_lodBiasRigid", -1000);
-		player setclientdvar("r_lodBiasSkinned", -1000);
-		player setClientDvar("r_lodScaleRigid", 1);
-		player setClientDvar("r_lodScaleSkinned", 1);
-		player setclientdvar("r_enablePlayerShadow", 1);
-		player setclientdvar("sm_sunquality", 2);
-		player useservervisionset(1);
-		player setvisionsetforplayer("", 0);
 	}
 }
